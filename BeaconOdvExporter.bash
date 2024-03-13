@@ -236,6 +236,6 @@ END{
     {
 	system("rm '$outfile'_ti.txt")
     }
-}' $infile 
+}' $infile > /dev/null
 
 
