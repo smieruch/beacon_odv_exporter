@@ -197,7 +197,6 @@ BEGIN{
     }
     # fill line into array X
     w=split($0,X)
-    Y[1]=X[1]
 }
 END{
     ###last sample 
