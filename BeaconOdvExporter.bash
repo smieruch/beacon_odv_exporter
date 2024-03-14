@@ -23,11 +23,15 @@ fi
 #
 if [ "$1" == "--help" ]
 then
-    echo "usage: BeaconOdvExporter.bash infile outfile"
+    echo "usage: BeaconOdvExporter.bash infile outfile id_name"
+    echo ""
+    echo "example: /home/scripts/BeaconOdvExporter.bash /data/test.txt /results/test BEACON_DATASET_ID"
     echo ""
     echo "----infile: A merged BEACON pre-ODV .txt file, including profiles, trajectories, timeseries (full unix style filepaths are possible, e.g. /home/user/data.txt)"
     echo ""
     echo "----outfile: The prefix name of the output files (full unix style filepaths are possible, e.g. /home/user/output/mydata)"
+    echo ""
+    echo "----id_name: A string depicting the name of a column of a unique identifier, i.e. it must be unique for every profile, trajectory or timeseries"
     echo ""
     echo "----The output file names suffixes are: _pr.txt, _tr.txt, and _ti.txt,"
     echo ""
@@ -37,9 +41,9 @@ then
     exit
 fi
 
-if [ -z $1 ]
+if [[ -z $1 || -z $2 || -z $3 ]]
 then
-    echo "usage: BeaconOdvExporter.bash infile outfile"
+    echo "usage: BeaconOdvExporter.bash infile outfile id_name"
     echo ""
     echo "get help: BeaconOdvExporter.bash --help"
     echo ""
@@ -47,18 +51,15 @@ then
     exit
 fi
 #
-if [ -z $2 ]
-then
-    echo "usage: BeaconOdvExporter.bash infile outfile"
-    echo ""
-    echo "get help: BeaconOdvExporter.bash --help"
-    echo ""
-    echo "get version: BeaconOdvExporter.bash --version"
-    exit
-fi
 
 infile=$1
 outfile=$2
+
+time_name="yyyy-mm-ddThh:mm:ss.sss"
+lon_name="Longitude [degrees_east]"
+lat_name="Latitude [degrees_north]"
+id_name=$3
+
 
 for i in "_tr.txt" "_pr.txt" "_ti.txt"
 do
@@ -76,6 +77,11 @@ BEGIN{
     column_name_line=9999999999999999
     ###as long as this is true the header is printed out into the 3 files
     print_header="true"
+    ###
+    time_col=""
+    lon_col=""
+    lat_col=""
+    id_col=""
     ###this is just a counter for the stations of timeseries and trajectories
     station=1
     ###this is for timeseries to fix the meta time at the start of the ti
@@ -120,6 +126,34 @@ BEGIN{
 	print_header="false"
         ###print NR
 	column_name_line=NR
+	###find column numbers of time, lon, lat, id
+	for (i=1;i<=NF;i++)
+	{
+	    if ($i == "'"$time_name"'")
+	    {
+		time_col=i
+		# print "time_col=" time_col
+		# print $time_col
+	    }
+	    if ($i == "'"$lon_name"'")
+	    {
+		lon_col=i
+		# print "lon_col=" lon_col
+		# print $lon_col
+	    }
+	    if ($i == "'"$lat_name"'")
+	    {
+		lat_col=i
+		# print "lat_col=" lat_col
+		# print $lat_col
+	    }
+	    if ($i == "'"$id_name"'")
+	    {
+		id_col=i
+		# print "id_col=" id_col
+	        # print $id_col
+	    }
+	}
     }
     ###if we are in data line 2 and we have data line 1 in X
     if ( NR > column_name_line + 1 )
@@ -132,26 +166,26 @@ BEGIN{
 	###---- see below ---###
 	###default is profile for every new dataset
 	#
-	if ( $1 == X[1] )
+	if ( $id_col == X[id_col] )
 	{
 	    ###we are in the same dataset
 	    ###check type
 	    ###4=time, 5=lon, 6=lat
 	    ###profile
-	    if ($4 == X[4] && $5 == X[5] && $6 == X[6])
+	    if ($time_col == X[time_col] && $lon_col == X[lon_col] && $lat_col == X[lat_col])
 	    {
 		current_type="pr"
 	    }
 	    ###timeseries / trajectory
-	    if ($4 != X[4])
+	    if ($time_col != X[time_col])
 	    {
 		###timeseries
-		if ($5 == X[5] && $6 == X[6])
+		if ($lon_col == X[lon_col] && $lat_col == X[lat_col])
 		{		    
 		    current_type="ti"
 		}
 		###trajectory
-		if ($5 != X[5] || $6 != X[6])
+		if ($lon_col != X[lon_col] || $lat_col != X[lat_col])
 		{		    
 		    current_type="tr"
 		}
@@ -173,7 +207,7 @@ BEGIN{
 	{
 	    exist_ti="true"
 	    ###if time series fix meta time
-	    X[4] = dataset_start_time
+	    X[time_col] = dataset_start_time
 	}
 	for (i=1;i<NF;i++)
 	{
@@ -184,12 +218,12 @@ BEGIN{
 	station++
 
 	###new dataset
-	if ( $1 != X[1])
+	if ( $id_col != X[id_col])
 	{
 	    ###reset station to 1
 	    station=1
 	    ###fix this for ti
-	    dataset_start_time = $4
+	    dataset_start_time = $time_col
 	    ###default for any new dataset: important for single row datasets
 	    ###those are considered as pr
 	    current_type="pr"
@@ -213,7 +247,7 @@ END{
     if ( current_type == "ti" )
     {
 	###if time series fix meta time
-	X[4] = dataset_start_time
+	X[time_col] = dataset_start_time
     }
     ###write
     for (i=1;i<NF;i++)
@@ -236,6 +270,6 @@ END{
     {
 	system("rm '$outfile'_ti.txt")
     }
-}' $infile > /dev/null
+}' $infile #> /dev/null
 
 
