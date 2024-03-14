@@ -11,8 +11,10 @@ individual files for ocean profiles, trajectories or timeseries.
 Call *BeaconODVExporter.bash --help* for more information how to use it.
 
 ## Requirements
-The input pre-ODV file must have the parameters
-**Cruise** **Station** **Type**
-**yyyy-mm-ddThh:mm:ss.sss** **Longitude [degrees_east]** **Latitude
-[degrees_north]** in the first 6 columns.
+- The input pre-ODV file must have the parameters
+  **Cruise** **Station** **Type**
+  **yyyy-mm-ddThh:mm:ss.sss** **Longitude [degrees_east]** **Latitude
+  [degrees_north]** in the first 6 columns.
 
+- The input file has to provide an identifier in one column, which is
+  unique for every profile, timeseries or trajectory
