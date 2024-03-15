@@ -27,17 +27,25 @@ then
     echo ""
     echo "example: /home/scripts/BeaconOdvExporter.bash /data/test.txt /results/test BEACON_DATASET_ID"
     echo ""
-    echo "----infile: A merged BEACON pre-ODV .txt file, including profiles, trajectories, timeseries (full unix style filepaths are possible, e.g. /home/user/data.txt)"
+    echo "----infile: A merged BEACON pre-ODV .txt file, including profiles, trajectories, timeseries"
+    echo "            (full unix style filepaths are possible, e.g. /home/user/data.txt)"
     echo ""
-    echo "----outfile: The prefix name of the output files (full unix style filepaths are possible, e.g. /home/user/output/mydata)"
+    echo "----outfile: The prefix name of the output files (full unix style filepaths are possible,"
+    echo "             e.g. /home/user/output/mydata)"
     echo ""
-    echo "----id_name: A string depicting the name of a column of a unique identifier, i.e. it must be unique for every profile, trajectory or timeseries"
+    echo "----id_name: A string depicting the name of a column of a unique identifier, i.e."
+    echo "             it must be unique for every profile, trajectory or timeseries"
     echo ""
-    echo "----The output file names suffixes are: _pr.txt, _tr.txt, and _ti.txt,"
+    echo "----The output file names suffixes are: _pr.txt, _tr.txt, _ti.txt, and _er.txt"
     echo ""
     echo "----This script seperates the input file by profiles, trajectories, timeseries and creates"
-    echo ""
-    echo "    up to 3 new files, respectively for profiles (pr), trajectories (tr), and timeseries (ti)"
+    echo "    up to 4 new files, respectively for profiles (pr), trajectories (tr), and timeseries (ti)"
+    echo "    and one for errors (er). Data rows are written to this error file ADDITIONALLY,"
+    echo "    so that this data can be investigated (manually) in the output data."
+    echo "    Errors occur if the data type of a dataset changes within the same dataset,"
+    echo "    that can happen e.g. if a dataset starts as profile and within"	
+    echo "    this dataset by error two rows of data would have different times."
+    echo "    Other error combinations are catched."	
     exit
 fi
 
@@ -61,7 +69,7 @@ lat_name="Latitude [degrees_north]"
 id_name=$3
 
 
-for i in "_tr.txt" "_pr.txt" "_ti.txt"
+for i in "_tr.txt" "_pr.txt" "_ti.txt" "_er.txt"
 do
     if [ -f "$outfile""$i" ]
     then
@@ -90,8 +98,13 @@ BEGIN{
     exist_pr="false"
     exist_tr="false"
     exist_ti="false"
+    exist_er="false"
     ###default is pr, which is important especially if we have single row datasets at the beginning of the file
     current_type="pr"
+    ###this is the type detected as the dataset starts
+    ###if the current_type changes we catch that as an error
+    dataset_type="pr"
+    change_type_error="false"
     ###create 3 output files and first header lines
     print "//<DataField>Ocean</DataField>" > "'"$outfile"_tr.txt'"
     print "//<DataType>Trajectories</DataType>" > "'"$outfile"_tr.txt'"
@@ -119,6 +132,7 @@ BEGIN{
 	print tmp1 > "'"$outfile"_tr.txt'"
 	print tmp1 > "'"$outfile"_ti.txt'"
 	print tmp2 > "'"$outfile"_pr.txt'"
+	print $0 > "'"$outfile"_er.txt'"
     }
     ###find column name line
     if ( $1 == "Cruise" )
@@ -175,6 +189,10 @@ BEGIN{
 	    if ($time_col == X[time_col] && $lon_col == X[lon_col] && $lat_col == X[lat_col])
 	    {
 		current_type="pr"
+	    } else {
+		###consider this as an error, e.g. if time is constant and lon or lat changes
+		###otherwise it will be catched below as ti or tr
+		current_type="er"
 	    }
 	    ###timeseries / trajectory
 	    if ($time_col != X[time_col])
@@ -191,30 +209,56 @@ BEGIN{
 		}
 	    }
 	}
+	###check for changing current_type within a dataset
+	###if we are in a new dataset, i.e. station==1
+	if ( station == 1)
+	{
+	    dataset_type = current_type
+	}
+	###check if current_type has changed within a dataset
+	if ( dataset_type != current_type )
+	{
+	    current_type="er"		
+	    exist_er="true"
+	    ###write additionally into the error file
+	    for (i=1;i<NF;i++)
+	    {
+		printf "%s\t", X[i] > "'"$outfile"_'" current_type "'.txt'"
+	    }
+	    printf "%s\n", X[NF] > "'"$outfile"_'" current_type "'.txt'"
+	    ###
+	    ###change current_type back
+	    current_type = dataset_type
+	}
+
 	###now we are in the same dataset or in a new
 	###set the type and write X to output
 	if ( current_type == "pr" )
 	{
 	    exist_pr="true"
 	}
+	###
 	if ( current_type == "tr" )
 	{
 	    exist_tr="true"
 	    ###if trajectory every sample is a new station
 	    X[2] = station
 	}
+	###
 	if ( current_type == "ti" )
 	{
 	    exist_ti="true"
 	    ###if time series fix meta time
 	    X[time_col] = dataset_start_time
 	}
+	###
 	for (i=1;i<NF;i++)
 	{
 	    printf "%s\t", X[i] > "'"$outfile"_'" current_type "'.txt'"
 	}
 	printf "%s\n", X[NF] > "'"$outfile"_'" current_type "'.txt'"
-	###increment station
+	###
+        ###increment station
 	station++
 
 	###new dataset
@@ -269,6 +313,10 @@ END{
     if ( exist_ti == "false" )
     {
 	system("rm '$outfile'_ti.txt")
+    }
+    if ( exist_er == "false" )
+    {
+	system("rm '$outfile'_er.txt")
     }
 }' $infile #> /dev/null
 
