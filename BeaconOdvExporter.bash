@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-version="v1.0.0"
+version="v1.0.1"
 if [ "$1" == "--version" ]
 then
     echo "BeaconOdvExporter.bash " $version
@@ -63,7 +63,7 @@ fi
 infile=$1
 outfile=$2
 
-time_name="yyyy-mm-ddThh:mm:ss.sss"
+time_name="YYYY-MM-DDThh:mm:ss.sss"
 lon_name="Longitude [degrees_east]"
 lat_name="Latitude [degrees_north]"
 id_name=$3
@@ -146,25 +146,25 @@ BEGIN{
 	    if ($i == "'"$time_name"'")
 	    {
 		time_col=i
-		# print "time_col=" time_col
+		#print "time_col=" time_col
 		# print $time_col
 	    }
 	    if ($i == "'"$lon_name"'")
 	    {
 		lon_col=i
-		# print "lon_col=" lon_col
+		#print "lon_col=" lon_col
 		# print $lon_col
 	    }
 	    if ($i == "'"$lat_name"'")
 	    {
 		lat_col=i
-		# print "lat_col=" lat_col
+		#print "lat_col=" lat_col
 		# print $lat_col
 	    }
 	    if ($i == "'"$id_name"'")
 	    {
 		id_col=i
-		# print "id_col=" id_col
+		#print "id_col=" id_col
 	        # print $id_col
 	    }
 	}
