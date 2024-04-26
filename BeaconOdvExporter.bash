@@ -125,7 +125,7 @@ BEGIN{
 	    gsub(/is_primary_variable=\"F\"/, "is_primary_variable=\"T\"",tmp1)
 	}
 	###replace primary_var in DEPTH for pr
-	if ( match(tmp2, /DEPTH/) )
+	if ( match(tmp2, /Depth/) )
 	{
 	    gsub(/is_primary_variable=\"F\"/, "is_primary_variable=\"T\"",tmp2)
 	}
