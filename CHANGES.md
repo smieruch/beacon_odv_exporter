@@ -1,5 +1,13 @@
 # Changes
 
+## 2025/01/28
+
+- The *id_name*, which is the name of the column that serves as a
+  unique dataset id, was producing errors if it was the last column in
+  the file, because of the line break character, which was still
+  connected to the last column name. Now this line break character is
+  removed from the columnk name during processing.
+
 ## 2024/03/15
 
 - New output file with suffix *_er.txt* is generated if the data type
