@@ -143,6 +143,10 @@ BEGIN{
 	###find column numbers of time, lon, lat, id
 	for (i=1;i<=NF;i++)
 	{
+	    ###remove the line break from the last column
+	    if (i==NF){
+		gsub(/[\n\r]+/, "", $i)
+	    }
 	    if ($i == "'"$time_name"'")
 	    {
 		time_col=i
